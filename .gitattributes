@@ -1,0 +1,13 @@
+# Model checkpoints are stored with Git LFS.
+*.pth filter=lfs diff=lfs merge=lfs -text
+
+*.py   text eol=lf
+*.md   text eol=lf
+*.txt  text eol=lf
+*.toml text eol=lf
+*.css  text eol=lf
+*.js   text eol=lf
+*.html text eol=lf
+LICENSE text eol=lf
+
+*.png binary

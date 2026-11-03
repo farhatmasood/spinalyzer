@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spinalyzer</title>
+<link rel="stylesheet" href="/static/ui.css">
+</head>
+<body>
+
+<header class="bar">
+  <div class="bar__name">Spinalyzer<span>lumbar spine imaging</span></div>
+  <div class="bar__right">
+    <span id="status" class="chip">starting</span>
+  </div>
+</header>
+
+<!-- ===================== UPLOAD ===================== -->
+<section id="upload" class="upload">
+  <div class="upload__box">
+    <h1>Load a patient study</h1>
+    <p class="lede">Up to eight images: two sagittal (T1, T2) and six axial
+      (three per weighting). Fewer is fine &mdash; the study reports on whatever
+      it is given.</p>
+
+    <div id="drop" class="drop" tabindex="0">
+      <input id="file" type="file" multiple hidden
+             accept="image/*,.dcm,.nii,.nii.gz">
+      <strong>Drop images here</strong>
+      <span>or <button id="browse" type="button" class="link">browse files</button></span>
+      <small>PNG &middot; JPG &middot; BMP &middot; TIF &middot; DICOM &middot; NIfTI</small>
+    </div>
+
+    <table id="queue" class="tbl tbl--queue" hidden>
+      <thead><tr><th>File</th><th>Plane</th><th>Weighting</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+
+    <div class="upload__go">
+      <button id="analyse" class="btn btn--go" disabled>Analyse study</button>
+      <button id="load-samples" class="btn btn--flat" type="button">Load sample study</button>
+    </div>
+    <p id="upload-msg" class="msg"></p>
+  </div>
+</section>
+
+<!-- ===================== WORKSPACE ===================== -->
+<main id="work" class="work" hidden>
+
+  <!-- LEFT: images -->
+  <section class="col col--img">
+    <div class="panel">
+      <div class="panel__hd">
+        <h2>Images</h2>
+        <div class="seg">
+          <button class="seg__b is-on" data-view="overlay">Segmented</button>
+          <button class="seg__b" data-view="original">Original</button>
+        </div>
+      </div>
+      <div id="strip" class="strip"></div>
+      <div class="stage"><img id="view" alt="series"></div>
+      <p id="view-meta" class="meta"></p>
+    </div>
+
+    <div class="panel">
+      <div class="panel__hd"><h2>Axial level alignment</h2></div>
+      <p class="hint">Each axial slice covers one disc level. <b>filename</b> was
+        read from the file name, <b>manual</b> you set, <b>order</b> means the file
+        said nothing so slices were mapped to the lowest levels in upload order.</p>
+      <table class="tbl" id="align">
+        <thead><tr><th>File</th><th>Weighting</th><th>Level</th><th>Source</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <p id="align-empty" class="hint">No axial slice in this study.</p>
+    </div>
+  </section>
+
+  <!-- MIDDLE: results -->
+  <section class="col col--data">
+    <div class="panel">
+      <div class="panel__hd"><h2>Study</h2></div>
+      <div id="glance" class="glance"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__hd"><h2>Positive levels</h2></div>
+      <div id="abnormal" class="abn"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__hd"><h2>Disc measurements</h2><span id="scale-tag" class="tag"></span></div>
+      <table class="tbl" id="t-disc">
+        <thead><tr><th>Level</th><th>Height</th><th>AP</th><th>Area</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <div class="panel__hd"><h2>Vertebral bodies</h2></div>
+      <table class="tbl" id="t-vb">
+        <thead><tr><th>Body</th><th>Height</th><th>Width</th><th>Area</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <div class="panel__hd"><h2>Pfirrmann &amp; stenosis</h2></div>
+      <table class="tbl" id="t-grade">
+        <thead><tr><th>Level</th><th>Grade</th><th>Description</th><th>Stenosis</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <div class="panel__hd">
+        <h2>Structured findings</h2>
+        <label class="mini"><input type="checkbox" id="pos-only" checked> positive only</label>
+      </div>
+      <table class="tbl" id="t-find">
+        <thead><tr><th>Finding</th><th>Probability</th><th>Verdict</th><th>Locate</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div id="locate-out" class="locate"></div>
+    </div>
+  </section>
+
+  <!-- RIGHT: ask + report -->
+  <section class="col col--act">
+    <div class="panel">
+      <div class="panel__hd"><h2>Ask</h2></div>
+      <form id="ask-form" class="row">
+        <input id="ask" type="text" autocomplete="off"
+               placeholder="segment L4 &middot; measure L5-S1 &middot; grade L4-L5">
+        <button class="btn" type="submit">Send</button>
+      </form>
+      <div class="quick">
+        <button class="pill" data-q="describe">describe</button>
+        <button class="pill" data-q="segment L4">segment L4</button>
+        <button class="pill" data-q="segment L4-L5">segment L4-L5</button>
+        <button class="pill" data-q="measure L5-S1">measure L5-S1</button>
+        <button class="pill" data-q="grade L4-L5">grade L4-L5</button>
+        <button class="pill" data-q="find stenosis">find stenosis</button>
+        <button class="pill" data-q="locate stenosis">locate stenosis</button>
+        <button class="pill" data-q="where is the herniation">where is herniation</button>
+        <button class="pill" data-q="help">help</button>
+      </div>
+      <div id="answer" class="answer"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__hd"><h2>Report</h2></div>
+
+      <p class="sub">Sections</p>
+      <div class="checks" id="sections">
+        <label><input type="checkbox" data-o="technique" checked> Technique</label>
+        <label><input type="checkbox" data-o="images" checked> Annotated images</label>
+        <label><input type="checkbox" data-o="inventory" checked> Inventory</label>
+        <label><input type="checkbox" data-o="axial_alignment" checked> Axial alignment</label>
+        <label><input type="checkbox" data-o="vertebral_morphometry" checked> Vertebral morphometry</label>
+        <label><input type="checkbox" data-o="disc_morphometry" checked> Disc morphometry</label>
+        <label><input type="checkbox" data-o="grading" checked> Pfirrmann grading</label>
+        <label><input type="checkbox" data-o="abnormal_regions" checked> Positive levels</label>
+        <label><input type="checkbox" data-o="findings_table" checked> Findings table</label>
+        <label><input type="checkbox" data-o="impression" checked> Impression</label>
+      </div>
+
+      <p class="sub">Annotation layers on the images</p>
+      <div class="checks" id="layers">
+        <label><input type="checkbox" data-o="ann_segmentation" checked> Class colours</label>
+        <label><input type="checkbox" data-o="ann_boxes" checked> Outlines</label>
+        <label><input type="checkbox" data-o="ann_labels" checked> Level labels</label>
+        <label><input type="checkbox" data-o="ann_measurements" checked> Measurements</label>
+        <label><input type="checkbox" data-o="ann_abnormal_only"> Positive levels only</label>
+        <label><input type="checkbox" data-o="ann_legend" checked> Legend</label>
+      </div>
+
+      <p class="sub">Threshold</p>
+      <div class="row row--thr">
+        <input id="thr" type="range" min="0.05" max="0.95" step="0.05" value="0.5">
+        <output id="thr-out">0.50</output>
+      </div>
+
+      <div class="row row--btns">
+        <button id="preview" class="btn btn--flat" type="button">Preview images</button>
+        <button id="pdf" class="btn" type="button">Download PDF</button>
+      </div>
+      <div id="preview-out" class="preview"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__hd"><h2>Calibration</h2></div>
+      <p id="cal-state" class="hint"></p>
+      <form id="cal-form" class="row">
+        <input id="mmpx" type="number" step="0.001" min="0" placeholder="mm per pixel">
+        <button class="btn btn--flat" type="submit">Apply</button>
+      </form>
+    </div>
+
+    <div class="panel">
+      <div class="panel__hd"><h2>Vocabulary</h2></div>
+      <p class="hint">Define a shortcut, e.g. <code>g4 = grade L4-L5</code>.</p>
+      <form id="lex-form" class="row">
+        <input id="lex" type="text" placeholder="term = expansion">
+        <button class="btn btn--flat" type="submit">Add</button>
+      </form>
+      <table class="tbl tbl--tiny" id="t-lex"><tbody></tbody></table>
+    </div>
+
+    <button id="reset" class="btn btn--flat btn--wide" type="button">New study</button>
+  </section>
+</main>
+
+<p class="foot">Automated output of local image models. Not a medical diagnosis.</p>
+
+<script src="/static/ui.js"></script>
+</body>
+</html>
